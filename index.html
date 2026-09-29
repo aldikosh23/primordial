@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Primordial — evolution in your browser</title>
+    <meta
+      name="description"
+      content="An evolution sandbox: creatures with genes for speed, size, vision and diet compete, hunt, hide and evolve in real time."
+    />
+    <meta name="theme-color" content="#06080b" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://aldikosh23.github.io/primordial/" />
+    <meta property="og:title" content="Primordial — evolution in your browser" />
+    <meta
+      property="og:description"
+      content="Watch predators and prey evolve in real time. No two worlds are the same."
+    />
+    <meta property="og:image" content="https://aldikosh23.github.io/primordial/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <main class="stage" id="stage">
+        <canvas id="world" role="img" aria-label="The simulated world: creatures, plants and fertile zones"></canvas>
+
+        <div class="chip clock" aria-live="off">
+          <span class="season-dot" id="season-dot"></span>
+          <span id="clock-year">Year 1</span>
+          <span class="clock-sep">·</span>
+          <span id="clock-season">Spring</span>
+          <span
+            class="speed-real"
+            id="speed-real"
+            title="Your device can't keep up with the chosen speed, so the world runs at about this speed"
+            hidden
+          ></span>
+        </div>
+
+        <div class="toolbar" role="toolbar" aria-label="Simulation controls">
+          <button class="icon-btn play" id="play" title="Pause (Space)" aria-label="Pause">
+            <svg viewBox="0 0 24 24" class="i-pause"><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect x="14" y="5" width="4" height="14" rx="1.2" /></svg>
+            <svg viewBox="0 0 24 24" class="i-play"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" /></svg>
+          </button>
+          <div class="seg" id="speed" role="group" aria-label="Speed">
+            <button data-speed="1" title="Speed 1× (1)">1×</button>
+            <button data-speed="3" title="Speed 3× (2)">3×</button>
+            <button data-speed="10" title="Speed 10× (3)">10×</button>
+            <button data-speed="30" title="Speed 30× (4)">30×</button>
+          </div>
+          <span class="toolbar-sep" aria-hidden="true"></span>
+          <div class="seg tools" id="tools" role="group" aria-label="Tool">
+            <button data-tool="inspect" title="Inspect creatures (I)">
+              <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5" /><path d="m15 15 4.5 4.5" /></svg>
+              <span>Inspect</span>
+            </button>
+            <button data-tool="feed" title="Drop food (F)">
+              <svg viewBox="0 0 24 24"><path d="M12 20c0-6 0-9 5.5-13.5C18 12 16 16 12 20z" /><path d="M12 20c0-4-1.5-6.5-6-9 .2 4.4 2 7.3 6 9z" /></svg>
+              <span>Feed</span>
+            </button>
+            <button data-tool="meteor" title="Meteor strike (M)">
+              <svg viewBox="0 0 24 24"><circle cx="15" cy="15" r="4.5" /><path d="M11.8 11.8 4 4M13 9.5 8 4.5M9.5 13 4.5 8" /></svg>
+              <span>Meteor</span>
+            </button>
+          </div>
+        </div>
+
+        <p class="hint" id="hint">Scroll to zoom · drag to pan · click a creature</p>
+
+        <div class="chip warmup" id="warmup" role="status" hidden>
+          Fast-forwarding <b id="warmup-pct">0%</b>
+        </div>
+
+        <section class="inspector" id="inspector" aria-label="Selected creature" hidden>
+          <header class="insp-head">
+            <span class="insp-swatch" id="insp-swatch"></span>
+            <div class="insp-title">
+              <h2 id="insp-name">Creature</h2>
+              <p id="insp-sub"></p>
+            </div>
+            <button class="icon-btn small" id="insp-close" aria-label="Close" title="Close (Esc)">
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          </header>
+          <div class="insp-status" id="insp-status"></div>
+          <div class="meter">
+            <div class="meter-label"><span id="insp-energy-label">Energy</span><span id="insp-energy-val"></span></div>
+            <div
+              class="meter-track"
+              id="insp-energy-track"
+              role="progressbar"
+              aria-labelledby="insp-energy-label"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <div class="meter-fill" id="insp-energy"></div>
+            </div>
+          </div>
+          <div class="meter">
+            <div class="meter-label"><span id="insp-age-label">Age</span><span id="insp-age-val"></span></div>
+            <div
+              class="meter-track"
+              id="insp-age-track"
+              role="progressbar"
+              aria-labelledby="insp-age-label"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <div class="meter-fill age" id="insp-age"></div>
+            </div>
+          </div>
+          <details class="insp-more" id="insp-more" open>
+            <summary>Genes and stats</summary>
+            <dl class="genes" id="insp-genes"></dl>
+            <div class="insp-counts" id="insp-counts"></div>
+          </details>
+          <div class="insp-actions">
+            <button class="btn" id="insp-follow">Follow</button>
+            <button class="btn ghost" id="insp-parent">Parent</button>
+          </div>
+        </section>
+
+        <div class="overlay" id="extinct" hidden>
+          <div class="overlay-card">
+            <h2>Life has ended</h2>
+            <p id="extinct-text">Every creature is gone.</p>
+            <div class="overlay-actions">
+              <button class="btn primary" id="extinct-new">New world</button>
+              <button class="btn ghost" id="extinct-replay">Replay this seed</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toast" id="toast" role="status" hidden></div>
+        <p class="sr-only" id="sr-live" aria-live="polite"></p>
+      </main>
+
+      <aside class="panel" id="panel">
+        <header class="brand">
+          <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="11" class="logo-body" />
+            <circle cx="13" cy="15" r="3.6" class="logo-core" />
+            <circle cx="20.5" cy="12" r="1.5" class="logo-eye" />
+            <circle cx="21.5" cy="18.5" r="1.5" class="logo-eye" />
+          </svg>
+          <div>
+            <h1>Primordial</h1>
+            <p class="tagline">An evolution sandbox. Every creature carries genes for speed, size, vision and diet — and passes them on, slightly mutated.</p>
+          </div>
+        </header>
+
+        <section class="tiles" aria-label="World at a glance">
+          <div class="tile"><span class="tile-label">Creatures</span><span class="tile-value" id="t-pop">0</span></div>
+          <div class="tile"><span class="tile-label">Plants</span><span class="tile-value" id="t-plants">0</span></div>
+          <div class="tile"><span class="tile-label">Generation</span><span class="tile-value" id="t-gen">0</span></div>
+          <div class="tile"><span class="tile-label">Births</span><span class="tile-value" id="t-births">0</span></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h3>Population</h3>
+            <span class="card-note" id="pop-window"></span>
+          </div>
+          <ul class="legend" id="legend"></ul>
+          <div class="chart" id="chart-pop"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h3>Evolution</h3>
+            <span class="card-note">average trait per group</span>
+          </div>
+          <div class="multiples">
+            <div class="multiple"><h4>Speed</h4><div class="chart small" id="chart-speed"></div></div>
+            <div class="multiple"><h4>Size</h4><div class="chart small" id="chart-size"></div></div>
+            <div class="multiple"><h4>Vision</h4><div class="chart small" id="chart-sense"></div></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h3>Colour chase</h3>
+            <span class="card-note">time runs outward</span>
+          </div>
+          <div class="chase">
+            <div class="chart chase-chart" id="chart-hue"></div>
+            <p class="chase-text">
+              Creatures never eat others of a similar colour. So prey evolve to look like their hunters, and hunters
+              evolve away — the whole ecosystem slowly spins around the colour wheel. Biologists call this kind of
+              endless arms race the <em>Red Queen effect</em>.
+            </p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h3>Chronicle</h3></div>
+          <ol class="events" id="events"><li class="events-empty">Nothing notable yet.</li></ol>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h3>World rules</h3></div>
+          <label class="field">
+            <span class="field-row"><span>Food growth</span><output id="food-val">100%</output></span>
+            <input type="range" id="food" min="0.25" max="2.5" step="0.05" value="1" />
+          </label>
+          <label class="field">
+            <span class="field-row"><span>Mutation strength</span><output id="mut-val">5%</output></span>
+            <input type="range" id="mutation" min="0" max="0.2" step="0.005" value="0.05" />
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="seasons" checked />
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span>Seasons <small>food booms in summer, dries up in winter</small></span>
+          </label>
+        </section>
+
+        <details class="card about">
+          <summary><h3>How it works</h3></summary>
+          <ul>
+            <li><b>Genes.</b> Speed, size, vision, diet and colour. Children inherit them with small random mutations.</li>
+            <li><b>Energy.</b> Everything costs energy: being big, being fast, seeing far. Run out and you starve.</li>
+            <li><b>Diet.</b> Plant-eaters graze, meat-eaters hunt anything no bigger than themselves. Omnivores do a bit of both, worse.</li>
+            <li><b>Cover.</b> Fertile zones are thick with plants. Small creatures inside them are hard to spot.</li>
+            <li><b>Selection.</b> Nothing is scripted. Whoever eats well has more children, so their genes spread.</li>
+          </ul>
+        </details>
+
+        <footer class="panel-foot">
+          <form class="seed" id="seed-form">
+            <label for="seed-input">Seed</label>
+            <input id="seed-input" spellcheck="false" autocomplete="off" />
+            <button class="btn ghost small" type="submit" title="Start a world from this seed">Load</button>
+          </form>
+          <div class="foot-actions">
+            <button class="btn primary" id="new-world">New world</button>
+            <button class="btn ghost" id="share">Copy link</button>
+          </div>
+          <p class="credits">
+            <a href="https://github.com/aldikosh23/primordial" target="_blank" rel="noopener">Source on GitHub</a>
+            · Space pause · 1–4 speed · I/F/M tools
+          </p>
+        </footer>
+      </aside>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
